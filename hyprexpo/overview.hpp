@@ -35,6 +35,9 @@ class COverview {
     void          close();
     void          selectHoveredWorkspace();
 
+    // Get monitor size considering transform (for vertical displays)
+    Vector2D      getLogicalSize() const;
+
     bool          blockOverviewRendering = false;
     bool          blockDamageReporting   = false;
 
