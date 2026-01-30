@@ -466,20 +466,22 @@ void COverview::fullRender() {
     // Check if monitor is rotated 90 or 270 degrees
     const auto transform  = pMonitor->m_transform;
     const bool isVertical = (transform % 2 == 1);
-    // transform 1 = 90° CW, needs -90° rotation (-PI/2)
-    // transform 3 = 270° CW, needs +90° rotation (+PI/2)
-    const double rotation = isVertical ? ((transform == 1) ? -M_PI_2 : M_PI_2) : 0.0;
 
     for (size_t y = 0; y < (size_t)SIDE_LENGTH; ++y) {
         for (size_t x = 0; x < (size_t)SIDE_LENGTH; ++x) {
             CBox texbox = {x * tileRenderSize.x + x * GAPSIZE, y * tileRenderSize.y + y * GAPSIZE, tileRenderSize.x, tileRenderSize.y};
-            texbox.scale(pMonitor->m_scale).translate(pos->value());
 
             if (isVertical) {
-                // For vertical displays, we need to rotate the texture
-                texbox.rot = rotation;
+                // For vertical displays, swap width and height
+                // The workspace is rendered in landscape but displayed in portrait
+                std::swap(texbox.w, texbox.h);
+
+                // Apply rotation: transform 1 = 90° CW (rotate +90° = +PI/2)
+                //                 transform 3 = 270° CW (rotate -90° = -PI/2)
+                texbox.rot = (transform == 1) ? M_PI_2 : -M_PI_2;
             }
 
+            texbox.scale(pMonitor->m_scale).translate(pos->value());
             texbox.round();
             CRegion damage{0, 0, INT16_MAX, INT16_MAX};
             g_pHyprOpenGL->renderTextureInternal(images[x + y * SIDE_LENGTH].fb.getTexture(), texbox, {.damage = &damage, .a = 1.0});
