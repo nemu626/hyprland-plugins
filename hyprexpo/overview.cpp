@@ -135,7 +135,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     const auto logicalSize    = getLogicalMonitorSize(pMonitor);
     Vector2D   tileSize       = logicalSize / SIDE_LENGTH;
     Vector2D   tileRenderSize = (logicalSize - Vector2D{GAP_WIDTH * pMonitor->m_scale, GAP_WIDTH * pMonitor->m_scale} * (SIDE_LENGTH - 1)) / SIDE_LENGTH;
-    CBox     monbox{0, 0, tileSize.x * 2, tileSize.y * 2};
+    CBox       monbox{0, 0, tileSize.x * 2, tileSize.y * 2};
 
     if (!ENABLE_LOWRES)
         monbox = {{0, 0}, pMonitor->m_pixelSize};
@@ -183,8 +183,8 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
         } else
             g_pHyprRenderer->renderWorkspace(PMONITOR, PWORKSPACE, Time::steadyNow(), monbox);
 
-        image.box = {(i % SIDE_LENGTH) * tileRenderSize.x + (i % SIDE_LENGTH) * GAP_WIDTH * pMonitor->m_scale, (i / SIDE_LENGTH) * tileRenderSize.y + (i / SIDE_LENGTH) * GAP_WIDTH * pMonitor->m_scale, tileRenderSize.x,
-                     tileRenderSize.y};
+        image.box = {(i % SIDE_LENGTH) * tileRenderSize.x + (i % SIDE_LENGTH) * GAP_WIDTH * pMonitor->m_scale,
+                     (i / SIDE_LENGTH) * tileRenderSize.y + (i / SIDE_LENGTH) * GAP_WIDTH * pMonitor->m_scale, tileRenderSize.x, tileRenderSize.y};
 
         g_pHyprOpenGL->m_renderData.blockScreenShader = true;
         g_pHyprRenderer->endRender();
@@ -463,10 +463,23 @@ void COverview::fullRender() {
 
     g_pHyprOpenGL->clear(BG_COLOR.stripA());
 
+    // Check if monitor is rotated 90 or 270 degrees
+    const auto transform  = pMonitor->m_transform;
+    const bool isVertical = (transform % 2 == 1);
+    // transform 1 = 90° CW, needs -90° rotation (-PI/2)
+    // transform 3 = 270° CW, needs +90° rotation (+PI/2)
+    const double rotation = isVertical ? ((transform == 1) ? -M_PI_2 : M_PI_2) : 0.0;
+
     for (size_t y = 0; y < (size_t)SIDE_LENGTH; ++y) {
         for (size_t x = 0; x < (size_t)SIDE_LENGTH; ++x) {
             CBox texbox = {x * tileRenderSize.x + x * GAPSIZE, y * tileRenderSize.y + y * GAPSIZE, tileRenderSize.x, tileRenderSize.y};
             texbox.scale(pMonitor->m_scale).translate(pos->value());
+
+            if (isVertical) {
+                // For vertical displays, we need to rotate the texture
+                texbox.rot = rotation;
+            }
+
             texbox.round();
             CRegion damage{0, 0, INT16_MAX, INT16_MAX};
             g_pHyprOpenGL->renderTextureInternal(images[x + y * SIDE_LENGTH].fb.getTexture(), texbox, {.damage = &damage, .a = 1.0});
@@ -502,8 +515,8 @@ void COverview::onSwipeUpdate(double delta) {
     Vector2D            tileSize    = (logicalSize / SIDE_LENGTH);
 
     const auto          SIZEMAX = logicalSize * logicalSize / tileSize;
-    const auto          POSMAX  = (-((logicalSize / (double)SIDE_LENGTH) * Vector2D{WORKSPACE_FOCUS_ID % SIDE_LENGTH, WORKSPACE_FOCUS_ID / SIDE_LENGTH}) * pMonitor->m_scale) *
-        (logicalSize / tileSize);
+    const auto          POSMAX =
+        (-((logicalSize / (double)SIDE_LENGTH) * Vector2D{WORKSPACE_FOCUS_ID % SIDE_LENGTH, WORKSPACE_FOCUS_ID / SIDE_LENGTH}) * pMonitor->m_scale) * (logicalSize / tileSize);
 
     const auto SIZEMIN = logicalSize;
     const auto POSMIN  = Vector2D{0, 0};
