@@ -150,6 +150,10 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
 
     startedOn->m_visible = false;
 
+    // Save original transform and temporarily disable rotation for rendering
+    const auto originalTransform = PMONITOR->m_transform;
+    PMONITOR->m_transform        = WL_OUTPUT_TRANSFORM_NORMAL; // Normal orientation for capturing
+
     for (size_t i = 0; i < (size_t)(SIDE_LENGTH * SIDE_LENGTH); ++i) {
         COverview::SWorkspaceImage& image = images[i];
         image.fb.alloc(monbox.w, monbox.h, PMONITOR->m_output->state->state().drmFormat);
@@ -189,6 +193,9 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
         g_pHyprOpenGL->m_renderData.blockScreenShader = true;
         g_pHyprRenderer->endRender();
     }
+
+    // Restore original transform
+    PMONITOR->m_transform = originalTransform;
 
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
@@ -295,6 +302,10 @@ void COverview::redrawID(int id, bool forcelowres) {
         image.fb.alloc(monbox.w, monbox.h, pMonitor->m_output->state->state().drmFormat);
     }
 
+    // Save original transform and temporarily disable rotation for rendering
+    const auto originalTransform = pMonitor->m_transform;
+    pMonitor->m_transform        = WL_OUTPUT_TRANSFORM_NORMAL; // Normal orientation for capturing
+
     CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
     g_pHyprRenderer->beginRender(pMonitor.lock(), fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &image.fb);
 
@@ -328,6 +339,9 @@ void COverview::redrawID(int id, bool forcelowres) {
 
     g_pHyprOpenGL->m_renderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
+
+    // Restore original transform
+    pMonitor->m_transform = originalTransform;
 
     pMonitor->m_activeSpecialWorkspace = openSpecial;
     pMonitor->m_activeWorkspace        = startedOn;
