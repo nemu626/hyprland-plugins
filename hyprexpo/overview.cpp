@@ -138,7 +138,7 @@ COverview::COverview(PHLWORKSPACE startedOn_, bool swipe_) : startedOn(startedOn
     CBox       monbox{0, 0, tileSize.x * 2, tileSize.y * 2};
 
     if (!ENABLE_LOWRES)
-        monbox = {{0, 0}, pMonitor->m_pixelSize};
+        monbox = {{0, 0}, logicalSize * pMonitor->m_scale};
 
     int          currentid = 0;
 
@@ -463,24 +463,9 @@ void COverview::fullRender() {
 
     g_pHyprOpenGL->clear(BG_COLOR.stripA());
 
-    // Check if monitor is rotated 90 or 270 degrees
-    const auto transform  = pMonitor->m_transform;
-    const bool isVertical = (transform % 2 == 1);
-
     for (size_t y = 0; y < (size_t)SIDE_LENGTH; ++y) {
         for (size_t x = 0; x < (size_t)SIDE_LENGTH; ++x) {
             CBox texbox = {x * tileRenderSize.x + x * GAPSIZE, y * tileRenderSize.y + y * GAPSIZE, tileRenderSize.x, tileRenderSize.y};
-
-            if (isVertical) {
-                // For vertical displays, swap width and height
-                // The workspace is rendered in landscape but displayed in portrait
-                std::swap(texbox.w, texbox.h);
-
-                // Apply rotation: transform 1 = 90° CW (rotate +90° = +PI/2)
-                //                 transform 3 = 270° CW (rotate -90° = -PI/2)
-                texbox.rot = (transform == 1) ? M_PI_2 : -M_PI_2;
-            }
-
             texbox.scale(pMonitor->m_scale).translate(pos->value());
             texbox.round();
             CRegion damage{0, 0, INT16_MAX, INT16_MAX};
